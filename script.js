@@ -121,6 +121,14 @@ function fontUpdate(event) {
                 href: "styles/font_IndieFlower.css"
             }).appendTo("head");
             break;
+        case '10':
+            $("<link/>", {
+                rel: "stylesheet",
+                type: "text/css",
+                class: "font",
+                href: "styles/font_HelveticaNeue.css"
+            }).appendTo("head");
+            break;
     }
 }
 

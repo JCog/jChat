@@ -39,7 +39,7 @@ Chat = {
         hideCommands: ('hide_commands' in $.QueryString ? ($.QueryString.hide_commands.toLowerCase() === 'true') : false),
         hideBadges: ('hide_badges' in $.QueryString ? ($.QueryString.hide_badges.toLowerCase() === 'true') : false),
         fade: ('fade' in $.QueryString ? parseInt($.QueryString.fade) : false),
-        size: ('size' in $.QueryString ? parseInt($.QueryString.size) : 3),
+        size: ('size' in $.QueryString ? parseInt($.QueryString.size) : 4),
         font: ('font' in $.QueryString ? parseInt($.QueryString.font) : 0),
         stroke: ('stroke' in $.QueryString ? parseInt($.QueryString.stroke) : false),
         shadow: ('shadow' in $.QueryString ? parseInt($.QueryString.shadow) : false),
@@ -53,7 +53,7 @@ Chat = {
         cheers: {},
         lines: [],
         blockedUsers: ('block' in $.QueryString ? $.QueryString.block.toLowerCase().split(',') : false),
-        bots: ['streamelements', 'streamlabs', 'nightbot', 'moobot', 'fossabot']
+        bots: ['streamelements', 'streamlabs', 'nightbot', 'moobot', 'fossabot', 'mazerchat']
     },
 
     loadEmotes: function(channelID) {
@@ -125,11 +125,18 @@ Chat = {
                         href: "styles/size_medium.css"
                     }).appendTo("head");
                     break;
-                default:
+                case 3:
                     $("<link/>", {
                         rel: "stylesheet",
                         type: "text/css",
                         href: "styles/size_large.css"
+                    }).appendTo("head");
+                    break;
+                default:
+                    $("<link/>", {
+                        rel: "stylesheet",
+                        type: "text/css",
+                        href: "styles/size_jcog.css"
                     }).appendTo("head");
                     break;
             }
@@ -196,6 +203,13 @@ Chat = {
                         rel: "stylesheet",
                         type: "text/css",
                         href: "styles/font_IndieFlower.css"
+                    }).appendTo("head");
+                    break;
+                case 10:
+                    $("<link/>", {
+                        rel: "stylesheet",
+                        type: "text/css",
+                        href: "styles/font_HelveticaNeue.css"
                     }).appendTo("head");
                     break;
                 default:
@@ -488,6 +502,7 @@ Chat = {
                 var color = twitchColors[nick.charCodeAt(0) % 15];
             }
             $username.css('color', color);
+            $username.css('font-weight', 700);
             $username.html(info['display-name'] ? info['display-name'] : nick);
             $userInfo.append($username);
 
@@ -499,7 +514,7 @@ Chat = {
                 message = message.replace(/^\x01ACTION/, '').replace(/\x01$/, '').trim();
                 $userInfo.append('<span>&nbsp;</span>');
             } else {
-                $userInfo.append('<span class="colon">:</span>');
+                //$userInfo.append('<span class="colon">:</span>');
             }
             $chatLine.append($userInfo);
 
