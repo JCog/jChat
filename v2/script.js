@@ -16,21 +16,6 @@
     })(window.location.search.substr(1).split('&'))
 })(jQuery);
 
-function escapeRegExp(string) { // Thanks to coolaj86 and Darren Cook (https://stackoverflow.com/a/6969486)
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function escapeHtml(message) {
-    return message
-        .replace(/&/g, "&amp;")
-        .replace(/(<)(?!3)/g, "&lt;")
-        .replace(/(>)(?!\()/g, "&gt;");
-}
-
-function TwitchAPI(url) {
-    return $.getJSON(url + (url.search(/\?/) > -1 ? '&' : '?') + 'client_id=' + client_id);
-}
-
 Chat = {
     info: {
         channel: null,
@@ -47,6 +32,7 @@ Chat = {
         emotes: {},
         badges: {},
         userBadges: {},
+        ffzapBadges: null,
         bttvBadges: null,
         seventvBadges: null,
         chatterinoBadges: null,
@@ -86,7 +72,8 @@ Chat = {
                 res.forEach(emote => {
                     Chat.info.emotes[emote.code] = {
                         id: emote.id,
-                        image: 'https://cdn.betterttv.net/emote/' + emote.id + '/3x'
+                        image: 'https://cdn.betterttv.net/emote/' + emote.id + '/3x',
+                        zeroWidth: ["5e76d338d6581c3724c0f0b2", "5e76d399d6581c3724c0f0b8", "567b5b520e984428652809b6", "5849c9a4f52be01a7ee5f79d", "567b5c080e984428652809ba", "567b5dc00e984428652809bd", "58487cc6f52be01a7ee5f205", "5849c9c8f52be01a7ee5f79e"].includes(emote.id) // "5e76d338d6581c3724c0f0b2" => cvHazmat, "5e76d399d6581c3724c0f0b8" => cvMask, "567b5b520e984428652809b6" => SoSnowy, "5849c9a4f52be01a7ee5f79d" => IceCold, "567b5c080e984428652809ba" => CandyCane, "567b5dc00e984428652809bd" => ReinDeer, "58487cc6f52be01a7ee5f205" => SantaHat, "5849c9c8f52be01a7ee5f79e" => TopHat
                     };
                 });
             });
@@ -97,7 +84,8 @@ Chat = {
                 res.forEach(emote => {
                     Chat.info.emotes[emote.name] = {
                         id: emote.id,
-                        image: emote.urls[emote.urls.length - 1][1]
+                        image: emote.urls[emote.urls.length - 1][1],
+                        zeroWidth: emote.visibility_simple.includes("ZERO_WIDTH")
                     };
                 });
             });
@@ -221,71 +209,16 @@ Chat = {
                     break;
             }
 
-            if (Chat.info.stroke) {
-                switch (Chat.info.stroke) {
-                    case 1:
-                        $("<link/>", {
-                            rel: "stylesheet",
-                            type: "text/css",
-                            href: "styles/stroke_thin.css"
-                        }).appendTo("head");
-                        break;
-                    case 2:
-                        $("<link/>", {
-                            rel: "stylesheet",
-                            type: "text/css",
-                            href: "styles/stroke_medium.css"
-                        }).appendTo("head");
-                        break;
-                    case 3:
-                        $("<link/>", {
-                            rel: "stylesheet",
-                            type: "text/css",
-                            href: "styles/stroke_thick.css"
-                        }).appendTo("head");
-                        break;
-                    case 4:
-                        $("<link/>", {
-                            rel: "stylesheet",
-                            type: "text/css",
-                            href: "styles/stroke_thicker.css"
-                        }).appendTo("head");
-                        break;
-                }
+            if (Chat.info.stroke && Chat.info.stroke > 0) {
+                let stroke = strokes[Chat.info.stroke - 1];
+                appendCSS('stroke', stroke);
             }
-
-            if (Chat.info.shadow) {
-                switch (Chat.info.shadow) {
-                    case 1:
-                        $("<link/>", {
-                            rel: "stylesheet",
-                            type: "text/css",
-                            href: "styles/shadow_small.css"
-                        }).appendTo("head");
-                        break;
-                    case 2:
-                        $("<link/>", {
-                            rel: "stylesheet",
-                            type: "text/css",
-                            href: "styles/shadow_medium.css"
-                        }).appendTo("head");
-                        break;
-                    case 3:
-                        $("<link/>", {
-                            rel: "stylesheet",
-                            type: "text/css",
-                            href: "styles/shadow_large.css"
-                        }).appendTo("head");
-                        break;
-                }
+            if (Chat.info.shadow && Chat.info.shadow > 0) {
+                let shadow = shadows[Chat.info.shadow - 1];
+                appendCSS('shadow', shadow);
             }
-
             if (Chat.info.smallCaps) {
-                $("<link/>", {
-                    rel: "stylesheet",
-                    type: "text/css",
-                    href: "styles/variant_SmallCaps.css"
-                }).appendTo("head");
+                appendCSS('variant', 'SmallCaps');
             }
 
             // Load badges
@@ -313,15 +246,36 @@ Chat = {
             });
 
             if (!Chat.info.hideBadges) {
-                $.getJSON('https://api.betterttv.net/3/cached/badges').done(function(res) {
-                    Chat.info.bttvBadges = res;
-                });
-                $.getJSON('https://api.7tv.app/v2/badges?user_identifier=login').done(function(res) {
-                    Chat.info.seventvBadges = res.badges;
-                });
-                $.getJSON('https://api.chatterino.com/badges').done(function(res) {
-                    Chat.info.chatterinoBadges = res.badges;
-                });
+                $.getJSON('https://api.ffzap.com/v1/supporters')
+                    .done(function(res) {
+                        Chat.info.ffzapBadges = res;
+                    })
+                    .fail(function() {
+                        Chat.info.ffzapBadges = [];
+                    });
+                $.getJSON('https://api.betterttv.net/3/cached/badges')
+                    .done(function(res) {
+                        Chat.info.bttvBadges = res;
+                    })
+                    .fail(function() {
+                        Chat.info.bttvBadges = [];
+                    });
+
+                $.getJSON('https://api.7tv.app/v2/badges?user_identifier=login')
+                    .done(function(res) {
+                        Chat.info.seventvBadges = res.badges;
+                    })
+                    .fail(function() {
+                        Chat.info.seventvBadges = [];
+                    });
+
+                $.getJSON('https://api.chatterino.com/badges')
+                    .done(function(res) {
+                        Chat.info.chatterinoBadges = res.badges;
+                    })
+                    .fail(function() {
+                        Chat.info.chatterinoBadges = [];
+                    });
             }
 
             // Load cheers images
@@ -330,7 +284,7 @@ Chat = {
                     Chat.info.cheers[action.prefix] = {}
                     action.tiers.forEach(tier => {
                         Chat.info.cheers[action.prefix][tier.min_bits] = {
-                            image: tier.images.light.animated['4'],
+                            image: tier.images.dark.animated['4'],
                             color: tier.color
                         };
                     });
@@ -389,6 +343,22 @@ Chat = {
                     if (!Chat.info.userBadges[nick].includes(userBadge)) Chat.info.userBadges[nick].push(userBadge);
                 });
             }
+            Chat.info.ffzapBadges.forEach(user => {
+                if (user.id.toString() === userId) {
+                    var color = '#755000';
+                    if (user.tier == 2) color = (user.badge_color || '#755000');
+                    else if (user.tier == 3) {
+                        if (user.badge_is_colored == 0) color = (user.badge_color || '#755000');
+                        else color = false;
+                    }
+                    var userBadge = {
+                        description: 'FFZ:AP Badge',
+                        url: 'https://api.ffzap.com/v1/user/badge/' + userId + '/3',
+                        color: color
+                    };
+                    if (!Chat.info.userBadges[nick].includes(userBadge)) Chat.info.userBadges[nick].push(userBadge);
+                }
+            });
             Chat.info.bttvBadges.forEach(user => {
                 if (user.name === nick) {
                     var userBadge = {
@@ -534,6 +504,7 @@ Chat = {
             Object.entries(Chat.info.emotes).forEach(emote => {
                 if (message.search(escapeRegExp(emote[0])) > -1) {
                     if (emote[1].upscale) replacements[emote[0]] = '<img class="emote upscale" src="' + emote[1].image + '" />';
+                    else if (emote[1].zeroWidth) replacements[emote[0]] = '<img class="emote" data-zw="true" src="' + emote[1].image + '" />';
                     else replacements[emote[0]] = '<img class="emote" src="' + emote[1].image + '" />';
                 }
             });
@@ -573,6 +544,19 @@ Chat = {
 
             message = twemoji.parse(message);
             $message.html(message);
+
+            // Writing zero-width emotes
+            messageNodes = $message.children();
+            messageNodes.each(function(i) {
+                if (i != 0 && $(this).data('zw') && ($(messageNodes[i - 1]).hasClass('emote') || $(messageNodes[i - 1]).hasClass('emoji')) && !$(messageNodes[i - 1]).data('zw')) {
+                    var $container = $('<span></span>');
+                    $container.addClass('zero-width_container');
+                    $(this).addClass('zero-width');
+                    $(this).before($container);
+                    $container.append(messageNodes[i - 1], this);
+                }
+            });
+            $message.html($message.html().trim());
             $chatLine.append($message);
             Chat.info.lines.push($chatLine.wrap('<div>').parent().html());
         }
@@ -663,7 +647,7 @@ Chat = {
                             }
 
                             if (!Chat.info.hideBadges) {
-                                if (Chat.info.bttvBadges && Chat.info.seventvBadges && Chat.info.chatterinoBadges && !Chat.info.userBadges[nick]) Chat.loadUserBadges(nick, message.tags['user-id']);
+                                if (Chat.info.bttvBadges && Chat.info.seventvBadges && Chat.info.chatterinoBadges && Chat.info.ffzapBadges && !Chat.info.userBadges[nick]) Chat.loadUserBadges(nick, message.tags['user-id']);
                             }
 
                             Chat.write(nick, message.tags, message.params[1]);
@@ -671,7 +655,6 @@ Chat = {
                     }
                 });
             };
-
         });
     }
 };
