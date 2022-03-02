@@ -19,5 +19,16 @@ function escapeHtml(message) {
 }
 
 function TwitchAPI(url) {
-    return $.getJSON(url + (url.search(/\?/) > -1 ? '&' : '?') + 'client_id=' + client_id);
+    return $.ajax({
+        type: "GET", 
+        url: "https://id.twitch.tv/oauth2/validate", 
+        dataType: "json",
+        headers: {'Authorization': 'Bearer ' + credentials},
+/* not required client_id auth for running locally */
+/*        headers: {'Client-Id': client_id},*/
+        success : function(result) { 
+            //set your variable to the result
+            console.log('jChat: helix json aquired user_id');
+        }
+    });
 }
